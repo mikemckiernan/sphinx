@@ -79,11 +79,18 @@ class TocTree(SphinxDirective):
         return ret
 
     def parse_content(self, toctree: addnodes.toctree) -> list[Node]:
+        indices: set[str] = set()
+        for domain in self.env.domains.values():
+            if not domain.indices:
+                continue
+            for idx in domain.indices:
+                indices.add(idx.name)
+
         generated_docnames = frozenset(self.env.domains['std']._virtual_doc_names)
         suffixes = self.config.source_suffix
 
         # glob target documents
-        all_docnames = self.env.found_docs.copy() | generated_docnames
+        all_docnames = self.env.found_docs.copy() | indices | generated_docnames
         all_docnames.remove(self.env.docname)  # remove current document
 
         ret: list[Node] = []
