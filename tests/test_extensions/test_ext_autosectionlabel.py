@@ -5,6 +5,10 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
+from sphinx.builders.html import INVENTORY_FILENAME
+from sphinx.errors import ExtensionError
+from sphinx.util.inventory import InventoryFile
+
 import pytest
 
 if TYPE_CHECKING:
@@ -105,3 +109,47 @@ def test_autosectionlabel_maxdepth(app: SphinxTestApp) -> None:
     assert re.search(html, content, re.DOTALL)
 
     assert "WARNING: undefined label: 'linux'" in app.warning.getvalue()
+
+    with app.outdir.joinpath(INVENTORY_FILENAME).open('rb') as f:
+        labels = InventoryFile.load(f, "http://example.com", posixpath.join).get('std:label')
+
+    assert labels['introduce of sphinx'].uri == 'http://example.com/index.html#introduce-of-sphinx'
+    assert labels['for unix users'].uri == 'http://example.com/index.html#for-unix-users'
+
+# Callable, not a fixture.
+def slugify(text: str) -> str:
+    return text.lower().replace(' ', '-')
+
+@pytest.mark.sphinx(
+    'html',
+    testroot='ext-autosectionlabel-slug-func',
+    confoverrides={
+        'autosectionlabel_prefix_document': True,
+        'autosectionlabel_maxdepth': 3,
+        'autosectionlabel_slug_func': __name__ + '.slugify',
+    },
+)
+def test_autosectionlabel_slug_func(app: SphinxTestApp) -> None:
+    app.build(force_all=True)
+
+    assert "WARNING: undefined label: 'index:linux'" in app.warning.getvalue()
+    assert "WARNING: undefined label: 'index:freebsd'" in app.warning.getvalue()
+
+    with app.outdir.joinpath(INVENTORY_FILENAME).open('rb') as f:
+        labels = InventoryFile.load(f, "http://example.com", posixpath.join).get('std:label')
+
+    assert labels['index:introduce-of-sphinx'].uri == 'http://example.com/index.html#introduce-of-sphinx'
+    assert labels['index:for-unix-users'].uri == 'http://example.com/index.html#for-unix-users'
+
+@pytest.mark.sphinx(
+    'html',
+    testroot='ext-autosectionlabel-slug-func',
+    confoverrides={
+        'autosectionlabel_slug_func': 'not.callable',
+    },
+)
+def test_autosectionlabel_slug_func_not_callable(app: SphinxTestApp) -> None:
+    with pytest.raises(ExtensionError) as exc:
+        app.build(force_all=True)
+
+    assert 'Failed to import slug function' in str(exc.value)

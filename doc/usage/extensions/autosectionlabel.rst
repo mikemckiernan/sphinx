@@ -50,6 +50,14 @@ Configuration
    only for top level sections, and deeper sections are not labeled.  It
    defaults to ``None`` (i.e. all sections are labeled).
 
+.. confval:: autosectionlabel_slug_func
+   :type: :code-py:`str | Callable[[str], str] | None`
+   :default: :code-py:`None`
+
+   If set to a callable, the function generates the section label from the heading text.
+   For example, if the slugging function lowercases all text and replaces spaces with hyphens,
+   the section label for the text ``A Plain Title`` becomes ``a-plain-title``.
+   One possible slugging function is ``myst_parser.mdit_to_docutils.base.default_slugify``.
 
 Debugging
 ---------
